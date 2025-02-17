@@ -2,102 +2,90 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 const App = () => {
+  // State to store the list of items
   const [items, setItems] = useState([]);
+  // State to store the input values
   const [itemInput, setItemInput] = useState({ title: "", description: "" });
+  // State to track if we are editing an item
   const [editing, setEditing] = useState(false);
 
-  // Fetch items from the server when component mounts
+  // Fetch items from the server when the component mounts
   useEffect(() => {
     const fetchItems = async () => {
-      {
-        // Send GET request to the server
-        const response = await axios.get("http://localhost:4000/api/items");
-        // Update the items state with data from the server
-        setItems(response.data);
-      }
+      const response = await axios.get("http://localhost:4000/api/items");
+      setItems(response.data);
     };
 
-    // Call the fetchItems function
     fetchItems();
   }, []);
 
   // Handle form submission
-  const handleSubmit = async () => {
-    try {
-      // Determine if we're creating a new item or updating an existing one
-      if (editing) {
-        // Send PUT request to update the item
-        const response = await axios.put(
-          `http://localhost:4000/api/items/${itemInput._id}`,
-          itemInput
-        );
-        // Update the item in the items state
-        const updatedItems = items.map((item) =>
-          item._id === itemInput._id ? response.data : item
-        );
-        setItems(updatedItems);
-        setEditing(false); // Reset editing mode
-      } else {
-        // Send POST request to create a new item
-        const response = await axios.post(
-          "http://localhost:4000/api/items",
-          itemInput
-        );
-        // Add the new item to the items state
-        setItems([...items, response.data]);
-      }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-      // Clear the form input after submission
-      setItemInput({ title: "", description: "" });
-    } catch (error) {
-      console.error("Error submitting item:", error);
+    if (editing) {
+      // Update an existing item
+      const response = await axios.put(
+        `http://localhost:4000/api/items/${itemInput._id}`,
+        itemInput
+      );
+      const updatedItems = items.map((item) =>
+        item._id === itemInput._id ? response.data : item
+      );
+      setItems(updatedItems);
+      setEditing(false);
+    } else {
+      // Create a new item
+      const response = await axios.post(
+        "http://localhost:4000/api/items",
+        itemInput
+      );
+      setItems([...items, response.data]);
     }
+
+    // Clear the form input
+    setItemInput({ title: "", description: "" });
   };
 
   // Handle deleting an item
   const handleDelete = async (id) => {
-    {
-      // Send DELETE request to remove the item
-      await axios.delete(`http://localhost:4000/api/items/${id}`);
-      // Remove the item from the items state
-      const filteredItems = items.filter((item) => item._id !== id);
-      setItems(filteredItems);
-    }
+    await axios.delete(`http://localhost:4000/api/items/${id}`);
+    const remainingItems = items.filter((item) => item._id !== id);
+    setItems(remainingItems);
+  };
+
+  // Handle input changes
+  const handleInputChange = (e) => {
+    setItemInput({ ...itemInput, [e.target.name]: e.target.value });
   };
 
   return (
     <div className="container mt-4">
       <h1 className="text-center mb-4">CRUD App</h1>
-
-      {/* Form to add/edit items */}
       <form onSubmit={handleSubmit} className="mb-4">
         <div className="mb-3">
+          <label className="form-label">Title</label>
           <input
             type="text"
             className="form-control"
             name="title"
             placeholder="Title"
-            required
             value={itemInput.title}
-            onChange={(e) =>
-              setItemInput({ ...itemInput, title: e.target.value })
-            }
+            onChange={handleInputChange}
           />
         </div>
         <div className="mb-3">
+          <label className="form-label">Description</label>
           <textarea
             className="form-control"
             name="description"
             placeholder="Description"
-            required
             value={itemInput.description}
-            onChange={(e) =>
-              setItemInput({ ...itemInput, description: e.target.value })
-            }
+            onChange={handleInputChange}
           />
         </div>
         <button type="submit" className="btn btn-primary">
-          {editing ? "Update Item" : "Add Item"}
+          {editing ? "Update" : "Add"}
         </button>
         {editing && (
           <button
@@ -113,9 +101,7 @@ const App = () => {
         )}
       </form>
 
-      <h2>Items List</h2>
       <ul className="list-group">
-        {/* Map over items and render each */}
         {items.map((item) => (
           <li key={item._id} className="list-group-item">
             <div className="d-flex justify-content-between align-items-start">
